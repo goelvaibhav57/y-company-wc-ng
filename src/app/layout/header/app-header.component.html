@@ -1,0 +1,43 @@
+<mat-toolbar class="app-header" color="primary">
+  <button
+    mat-icon-button
+    class="menu-toggle"
+    type="button"
+    aria-label="Open navigation menu"
+    (click)="menuToggle.emit()">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <a class="brand" routerLink="/dashboard" aria-label="eClaims dashboard">
+    <span class="brand-mark" aria-hidden="true">eC</span>
+    <span>eClaims</span>
+  </a>
+
+  <span class="toolbar-spacer"></span>
+
+  <button
+    mat-button
+    class="profile-trigger"
+    type="button"
+    [matMenuTriggerFor]="profileMenu"
+    aria-label="Open user profile menu">
+    <span class="avatar" aria-hidden="true">AM</span>
+    <span class="profile-copy">
+      <span class="profile-name">{{ userName }}</span>
+      <span class="profile-role">{{ userRole }}</span>
+    </span>
+    <mat-icon class="profile-chevron">expand_more</mat-icon>
+  </button>
+
+  <mat-menu #profileMenu="matMenu" xPosition="before">
+    <div class="menu-user" aria-label="Current user">
+      <span class="menu-user-name">{{ userName }}</span>
+      <span class="menu-user-role">{{ userRole }}</span>
+    </div>
+    <mat-divider></mat-divider>
+    <button mat-menu-item type="button" (click)="logoutRequested.emit()">
+      <mat-icon>logout</mat-icon>
+      <span>Sign out</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>

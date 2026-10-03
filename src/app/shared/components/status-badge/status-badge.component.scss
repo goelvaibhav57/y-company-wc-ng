@@ -1,0 +1,31 @@
+:host {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.status-badge {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.status-badge mat-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 14px;
+}
+
+.tone-neutral { border-color: #e3e8ef; background: #f3f5f8; color: #5e6c80; }
+.tone-info { border-color: #d7e5fb; background: #edf4ff; color: #285da8; }
+.tone-warning { border-color: #f4e1b9; background: #fff7e7; color: #8b5a0a; }
+.tone-success { border-color: #cde9dc; background: #eaf7f0; color: #24734c; }
+.tone-danger { border-color: #f1d3d1; background: #fff0ef; color: #a33932; }

@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.shell-container {
+  min-height: calc(100vh - 68px);
+  background: #f5f7fb;
+}
+
+.shell-sidenav {
+  width: 250px;
+  border: 0;
+  border-right: 1px solid #e8edf3;
+  background: #fff;
+}
+
+.shell-content {
+  background: #f5f7fb;
+}
+
+.page-content {
+  width: min(100% - 64px, 1160px);
+  margin: 36px auto;
+}
+
+@media (max-width: 767px) {
+  .shell-container {
+    min-height: calc(100vh - 60px);
+  }
+
+  .shell-sidenav {
+    width: min(290px, 84vw);
+  }
+
+  .page-content {
+    width: min(100% - 32px, 1160px);
+    margin: 24px auto;
+  }
+}

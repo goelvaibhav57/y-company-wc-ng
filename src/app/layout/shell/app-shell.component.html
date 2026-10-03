@@ -1,0 +1,22 @@
+<app-header
+  [userName]="currentUserName()"
+  [userRole]="currentRoleName()"
+  (menuToggle)="toggleNavigation()"
+  (logoutRequested)="authService.logout()"></app-header>
+
+<mat-sidenav-container class="shell-container">
+  <mat-sidenav
+    class="shell-sidenav"
+    [mode]="isMobile() ? 'over' : 'side'"
+    [opened]="!isMobile() || mobileNavigationOpen()"
+    [disableClose]="!isMobile()"
+    (closedStart)="closeMobileNavigation()">
+    <app-sidebar (navigationSelected)="closeMobileNavigation()"></app-sidebar>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

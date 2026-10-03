@@ -1,0 +1,111 @@
+<div class="back-row">
+  <a mat-button [routerLink]="claimRoute()"><mat-icon>arrow_back</mat-icon> Back to Claim</a>
+</div>
+
+<app-page-header
+  title="Workshop Processing"
+  [subtitle]="claim() ? 'Update repairs for claim ' + claim()!.claimNumber + '.' : 'Manage approved vehicle repairs and completion.'">
+</app-page-header>
+
+<section *ngIf="loading()" class="page-state" aria-live="polite">
+  <mat-spinner diameter="38" aria-label="Loading repair"></mat-spinner>
+  <p>Loading workshop repair…</p>
+</section>
+
+<mat-card *ngIf="!loading() && errorMessage() && !claim()" class="page-state error-state" role="alert">
+  <mat-icon aria-hidden="true">gpp_maybe</mat-icon>
+  <h2>Repair unavailable</h2>
+  <p>{{ errorMessage() }}</p>
+  <a mat-stroked-button routerLink="/claims">Back to Claims</a>
+</mat-card>
+
+<ng-container *ngIf="!loading() && claim() as currentClaim">
+  <app-claim-summary [claim]="currentClaim"></app-claim-summary>
+
+  <div class="workshop-grid">
+    <div class="workshop-main">
+      <mat-card class="repair-card">
+        <div class="section-title">
+          <span class="section-icon"><mat-icon>handyman</mat-icon></span>
+          <div><h2>Repair Processing</h2><p>Record the workshop schedule, estimate, and completion details.</p></div>
+          <span class="approved-amount"><span>Approved amount</span><strong>{{ currentClaim.claimAmount | currency:'USD':'symbol':'1.0-0' }}</strong></span>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="saveChanges()" novalidate>
+          <div class="field-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Repair Start Date</mat-label>
+              <input matInput type="date" formControlName="repairStartDate">
+              <mat-error *ngIf="form.controls.repairStartDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Estimated Completion Date</mat-label>
+              <input matInput type="date" formControlName="estimatedCompletionDate">
+              <mat-error *ngIf="form.controls.estimatedCompletionDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+              <mat-error *ngIf="form.hasError('estimatedCompletionBeforeStart')">Estimated completion cannot be before the repair start date.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Actual Completion Date</mat-label>
+              <input matInput type="date" formControlName="actualCompletionDate">
+              <mat-error *ngIf="form.controls.actualCompletionDate.hasError('required')">Actual completion date is required to complete repairs.</mat-error>
+              <mat-error *ngIf="form.controls.actualCompletionDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+              <mat-error *ngIf="form.hasError('actualCompletionBeforeStart')">Actual completion cannot be before the repair start date.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Repair Status</mat-label>
+              <mat-select formControlName="repairStatus">
+                <mat-option value="ASSIGNED">Assigned</mat-option>
+                <mat-option value="IN_PROGRESS">In Progress</mat-option>
+                <mat-option value="COMPLETED">Completed</mat-option>
+              </mat-select>
+              <mat-error *ngIf="form.controls.repairStatus.hasError('required')">Repair status is required.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Repair Estimate</mat-label>
+              <span matPrefix>$&nbsp;</span>
+              <input matInput type="number" min="0" step="0.01" formControlName="repairEstimate">
+              <mat-error *ngIf="form.controls.repairEstimate.hasError('required')">Repair estimate is required.</mat-error>
+              <mat-error *ngIf="form.controls.repairEstimate.hasError('min')">Repair estimate cannot be negative.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-row">
+              <mat-label>Workshop Remarks</mat-label>
+              <textarea matInput formControlName="workshopRemarks" rows="4" maxlength="1000"></textarea>
+              <mat-hint align="end">{{ form.controls.workshopRemarks.value.length }} / 1000</mat-hint>
+              <mat-error *ngIf="form.controls.workshopRemarks.hasError('maxlength')">Remarks cannot exceed 1,000 characters.</mat-error>
+            </mat-form-field>
+          </div>
+
+          <p *ngIf="errorMessage() && claim()" class="submit-error" role="alert">
+            <mat-icon>error_outline</mat-icon>{{ errorMessage() }}
+          </p>
+
+          <footer class="form-actions">
+            <a mat-button [routerLink]="['/claims', currentClaim.id]" [class.disabled-link]="saving()">Cancel</a>
+            <button mat-stroked-button type="button" [disabled]="saving() || completed()" (click)="requestCompletionConfirmation()">
+              <mat-icon>task_alt</mat-icon>Mark Repair Completed
+            </button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving() || completed()">
+              <mat-spinner *ngIf="saving()" diameter="17" aria-label="Saving repair"></mat-spinner>
+              <mat-icon *ngIf="!saving()">save</mat-icon>{{ saving() ? 'Saving…' : 'Save Repair Updates' }}
+            </button>
+          </footer>
+        </form>
+      </mat-card>
+    </div>
+
+    <aside class="workshop-side">
+      <mat-card class="vehicle-card">
+        <div class="section-heading"><span class="section-icon vehicle-icon"><mat-icon>directions_car</mat-icon></span><div><h2>Vehicle Details</h2><p>Vehicle approved for repair</p></div></div>
+        <div class="vehicle-name">{{ currentClaim.vehicle.year }} {{ currentClaim.vehicle.make }} {{ currentClaim.vehicle.model }}</div>
+        <div class="vehicle-registration">{{ currentClaim.vehicle.registrationNumber }}</div>
+        <div class="estimate-summary"><span>Current repair estimate</span><strong>{{ form.controls.repairEstimate.value | currency:'USD':'symbol':'1.0-0' }}</strong></div>
+      </mat-card>
+      <app-claim-timeline [history]="history()"></app-claim-timeline>
+    </aside>
+  </div>
+</ng-container>

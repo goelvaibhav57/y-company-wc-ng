@@ -1,0 +1,109 @@
+<div class="back-row">
+  <a mat-button [routerLink]="detailRoute()"><mat-icon>arrow_back</mat-icon> Back to Claim</a>
+</div>
+
+<app-page-header
+  title="Survey Assessment"
+  [subtitle]="claim() ? 'Inspect claim ' + claim()!.claimNumber + ' and record your findings.' : 'Complete the vehicle inspection and recommendation.'">
+</app-page-header>
+
+<section *ngIf="loading()" class="page-state" aria-live="polite">
+  <mat-spinner diameter="38" aria-label="Loading claim"></mat-spinner>
+  <p>Loading assigned claim…</p>
+</section>
+
+<mat-card *ngIf="!loading() && errorMessage() && !claim()" class="page-state error-state" role="alert">
+  <mat-icon aria-hidden="true">gpp_maybe</mat-icon>
+  <h2>Survey unavailable</h2>
+  <p>{{ errorMessage() }}</p>
+  <a mat-stroked-button routerLink="/claims">Back to Claims</a>
+</mat-card>
+
+<ng-container *ngIf="!loading() && claim() as currentClaim">
+  <app-claim-summary [claim]="currentClaim"></app-claim-summary>
+
+  <mat-card class="assessment-card">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">fact_check</mat-icon></span>
+      <div>
+        <h2>Inspection Findings</h2>
+        <p>Record the observed damage and recommended next steps.</p>
+      </div>
+      <span *ngIf="savedAssessment() as saved" class="draft-indicator" [class.submitted-indicator]="saved.status === 'SUBMITTED'">
+        <mat-icon>{{ saved.status === 'SUBMITTED' ? 'task_alt' : 'save' }}</mat-icon>
+        {{ saved.status === 'SUBMITTED' ? 'Submitted' : 'Draft saved' }}
+      </span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="requestSubmitConfirmation()" novalidate>
+      <div class="field-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Inspection Date</mat-label>
+          <input matInput type="date" formControlName="inspectionDate">
+          <mat-error *ngIf="form.controls.inspectionDate.hasError('required')">Inspection date is required.</mat-error>
+          <mat-error *ngIf="form.controls.inspectionDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Damage Severity</mat-label>
+          <mat-select formControlName="damageSeverity">
+            <mat-option value="MINOR">Minor</mat-option>
+            <mat-option value="MODERATE">Moderate</mat-option>
+            <mat-option value="MAJOR">Major</mat-option>
+            <mat-option value="TOTAL_LOSS">Total Loss</mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.controls.damageSeverity.hasError('required')">Damage severity is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-row">
+          <mat-label>Damage Description</mat-label>
+          <textarea matInput formControlName="damageDescription" rows="4" maxlength="2000"></textarea>
+          <mat-hint align="end">{{ form.controls.damageDescription.value.length }} / 2000</mat-hint>
+          <mat-error *ngIf="form.controls.damageDescription.hasError('required')">Damage description is required.</mat-error>
+          <mat-error *ngIf="form.controls.damageDescription.hasError('maxlength')">Description cannot exceed 2,000 characters.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Estimated Repair Cost</mat-label>
+          <span matPrefix>$&nbsp;</span>
+          <input matInput type="number" formControlName="estimatedRepairCost" min="0.01" step="0.01">
+          <mat-error *ngIf="form.controls.estimatedRepairCost.hasError('required')">Estimated repair cost is required.</mat-error>
+          <mat-error *ngIf="form.controls.estimatedRepairCost.hasError('min')">Cost must be greater than zero.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Recommended Action</mat-label>
+          <mat-select formControlName="recommendedAction">
+            <mat-option *ngFor="let action of actions" [value]="action">{{ action }}</mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.controls.recommendedAction.hasError('required')">Recommended action is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-row">
+          <mat-label>Surveyor Remarks</mat-label>
+          <textarea matInput formControlName="surveyorRemarks" rows="3" maxlength="1000"></textarea>
+          <mat-hint align="end">{{ form.controls.surveyorRemarks.value.length }} / 1000</mat-hint>
+          <mat-error *ngIf="form.controls.surveyorRemarks.hasError('maxlength')">Remarks cannot exceed 1,000 characters.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <p *ngIf="errorMessage() && claim()" class="submit-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>{{ errorMessage() }}
+      </p>
+
+      <footer class="form-actions">
+        <a mat-button [routerLink]="['/claims', currentClaim.id]" [class.disabled-link]="savingDraft() || submitting()">Cancel</a>
+        <button mat-stroked-button type="button" [disabled]="savingDraft() || submitting()" (click)="saveDraft()">
+          <mat-spinner *ngIf="savingDraft()" diameter="17" aria-label="Saving draft"></mat-spinner>
+          <mat-icon *ngIf="!savingDraft()">save</mat-icon>
+          {{ savingDraft() ? 'Saving…' : 'Save Draft' }}
+        </button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="savingDraft() || submitting()">
+          <mat-spinner *ngIf="submitting()" diameter="17" aria-label="Submitting assessment"></mat-spinner>
+          <mat-icon *ngIf="!submitting()">send</mat-icon>
+          {{ submitting() ? 'Submitting…' : 'Submit Assessment' }}
+        </button>
+      </footer>
+    </form>
+  </mat-card>
+</ng-container>

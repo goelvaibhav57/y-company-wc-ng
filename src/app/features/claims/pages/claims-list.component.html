@@ -1,0 +1,73 @@
+<app-page-header title="Claims" [subtitle]="pageSubtitle()">
+  <a
+    page-header-actions
+    *appHasPermission="createPermission"
+    mat-flat-button
+    color="primary"
+    routerLink="/claims/create">
+    <mat-icon>add</mat-icon>
+    Create Claim
+  </a>
+</app-page-header>
+
+<mat-card class="filters-card" aria-label="Claim filters">
+  <form class="filters-form" [formGroup]="filterForm">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search claims</mat-label>
+      <input matInput formControlName="search" placeholder="Claim number, policy, or customer">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option *ngFor="let status of statusOptions" [value]="status">{{ statusLabel(status) }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Created from</mat-label>
+      <input matInput type="date" formControlName="fromDate">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Created to</mat-label>
+      <input matInput type="date" formControlName="toDate">
+    </mat-form-field>
+
+    <button mat-button type="button" class="clear-button" [disabled]="!hasActiveFilters()" (click)="clearFilters()">
+      Clear filters
+    </button>
+  </form>
+</mat-card>
+
+<section *ngIf="loading()" class="state-panel" aria-live="polite">
+  <mat-spinner diameter="36" aria-label="Loading claims"></mat-spinner>
+  <p>Loading claims…</p>
+</section>
+
+<mat-card *ngIf="!loading() && errorMessage()" class="state-panel error-panel" role="alert">
+  <mat-icon aria-hidden="true">cloud_off</mat-icon>
+  <h2>Claims unavailable</h2>
+  <p>{{ errorMessage() }}</p>
+  <button mat-stroked-button type="button" (click)="loadClaims()">Try again</button>
+</mat-card>
+
+<mat-card *ngIf="!loading() && !errorMessage()" class="claims-card">
+  <div class="results-heading">
+    <div>
+      <h2>Claims register</h2>
+      <p>{{ filteredClaims().length }} {{ filteredClaims().length === 1 ? 'claim' : 'claims' }} shown</p>
+    </div>
+  </div>
+
+  <div *ngIf="filteredClaims().length === 0" class="empty-state">
+    <span class="empty-icon"><mat-icon aria-hidden="true">search_off</mat-icon></span>
+    <h3>{{ allClaims().length === 0 ? 'No claims assigned' : 'No matching claims' }}</h3>
+    <p>{{ allClaims().length === 0 ? 'Claims available to your role will appear here.' : 'Try adjusting your search or filters.' }}</p>
+    <button *ngIf="hasActiveFilters()" mat-stroked-button type="button" (click)="clearFilters()">Clear filters</button>
+  </div>
+
+  <app-claim-table *ngIf="filteredClaims().length > 0" [claims]="filteredClaims()"></app-claim-table>
+</mat-card>

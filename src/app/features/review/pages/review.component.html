@@ -1,0 +1,106 @@
+<div class="back-row">
+  <a mat-button routerLink="/claims"><mat-icon>arrow_back</mat-icon> Back to Claims</a>
+</div>
+
+<app-page-header
+  title="Adjuster Review"
+  [subtitle]="reviewData() ? 'Review survey findings and record a decision for ' + reviewData()!.claim.claimNumber + '.' : 'Assess the claim and its supporting information.'">
+</app-page-header>
+
+<section *ngIf="loading()" class="page-state" aria-live="polite">
+  <mat-spinner diameter="38" aria-label="Loading review"></mat-spinner>
+  <p>Loading claim review…</p>
+</section>
+
+<mat-card *ngIf="!loading() && errorMessage() && !reviewData()" class="page-state error-state" role="alert">
+  <mat-icon aria-hidden="true">cloud_off</mat-icon>
+  <h2>Review unavailable</h2>
+  <p>{{ errorMessage() }}</p>
+  <a mat-stroked-button routerLink="/claims">Back to Claims</a>
+</mat-card>
+
+<ng-container *ngIf="!loading() && reviewData() as data">
+  <app-claim-summary [claim]="data.claim"></app-claim-summary>
+
+  <mat-card class="decision-card">
+    <div class="decision-heading">
+      <div>
+        <p class="eyebrow">ADJUSTER DECISION</p>
+        <h2>Review outcome</h2>
+        <p class="section-description">Confirm the survey findings and choose the next step for this claim.</p>
+      </div>
+      <app-status-badge [status]="data.claim.status"></app-status-badge>
+    </div>
+
+    <div *ngIf="!isEligible()" class="ineligible-notice" role="status">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>This claim is not eligible for a new review decision in its current status.</span>
+    </div>
+
+    <p *ngIf="errorMessage()" class="decision-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>{{ errorMessage() }}
+    </p>
+
+    <div class="decision-actions">
+      <button mat-flat-button color="primary" type="button" [disabled]="!canApprove() || processing()" (click)="openDecision('APPROVE')">
+        <mat-spinner *ngIf="processing()" diameter="17" aria-label="Saving decision"></mat-spinner>
+        <mat-icon *ngIf="!processing()">check_circle</mat-icon>Approve
+      </button>
+      <button mat-stroked-button class="request-button" type="button" [disabled]="!canRequestInformation() || processing()" (click)="openDecision('REQUEST_INFORMATION')">
+        <mat-icon>help_outline</mat-icon>Request Additional Information
+      </button>
+      <button mat-stroked-button color="warn" type="button" [disabled]="!canReject() || processing()" (click)="openDecision('REJECT')">
+        <mat-icon>cancel</mat-icon>Reject
+      </button>
+    </div>
+  </mat-card>
+
+  <div class="review-grid">
+    <div class="review-main-column">
+      <mat-card class="info-card">
+        <div class="section-heading"><span class="section-icon"><mat-icon>policy</mat-icon></span><div><h2>Policy Information</h2><p>Coverage details on record</p></div></div>
+        <div class="data-grid">
+          <div><span>Policy Number</span><strong>{{ data.claim.policy.policyNumber }}</strong></div>
+          <div><span>Policy Type</span><strong>{{ humanize(data.claim.policy.policyType) }}</strong></div>
+          <div><span>Coverage Start</span><strong>{{ data.claim.policy.startDate | date:'MMM d, y' }}</strong></div>
+          <div><span>Coverage End</span><strong>{{ data.claim.policy.endDate | date:'MMM d, y' }}</strong></div>
+        </div>
+      </mat-card>
+
+      <mat-card class="info-card">
+        <div class="section-heading"><span class="section-icon vehicle-icon"><mat-icon>directions_car</mat-icon></span><div><h2>Vehicle Information</h2><p>Vehicle associated with this claim</p></div></div>
+        <div class="data-grid">
+          <div><span>Vehicle</span><strong>{{ data.claim.vehicle.year }} {{ data.claim.vehicle.make }} {{ data.claim.vehicle.model }}</strong></div>
+          <div><span>Registration</span><strong>{{ data.claim.vehicle.registrationNumber }}</strong></div>
+          <div><span>Incident Location</span><strong>{{ data.claim.incidentLocation }}</strong></div>
+          <div><span>Incident Date</span><strong>{{ data.claim.incidentDate | date:'MMM d, y' }}</strong></div>
+        </div>
+      </mat-card>
+
+      <mat-card class="assessment-card">
+        <div class="section-heading"><span class="section-icon survey-icon"><mat-icon>fact_check</mat-icon></span><div><h2>Survey Assessment</h2><p>Inspection findings submitted by the surveyor</p></div></div>
+        <ng-container *ngIf="data.assessment as assessment; else noAssessment">
+          <div class="assessment-grid">
+            <div><span>Inspection Date</span><strong>{{ assessment.inspectionDate | date:'MMM d, y' }}</strong></div>
+            <div><span>Damage Severity</span><strong class="severity">{{ humanize(assessment.damageSeverity) }}</strong></div>
+            <div><span>Estimated Repair Cost</span><strong class="cost">{{ assessment.estimatedRepairCost | currency:'USD':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Recommended Action</span><strong>{{ assessment.recommendedAction }}</strong></div>
+            <div class="wide"><span>Damage Description</span><p>{{ assessment.damageDescription }}</p></div>
+            <div class="wide"><span>Surveyor Remarks</span><p>{{ assessment.surveyorRemarks || 'No additional remarks.' }}</p></div>
+            <div class="wide submitted-by"><mat-icon>person_outline</mat-icon>Submitted by {{ assessment.submittedBy }} · {{ assessment.status }}</div>
+          </div>
+        </ng-container>
+        <ng-template #noAssessment>
+          <div class="empty-assessment"><mat-icon>pending_actions</mat-icon><span>No submitted survey assessment is available yet.</span></div>
+        </ng-template>
+      </mat-card>
+
+      <app-claim-timeline [history]="data.history"></app-claim-timeline>
+      <app-claim-activity [activities]="data.history"></app-claim-activity>
+    </div>
+
+    <aside class="review-side-column" aria-label="Claim documents">
+      <app-document-list [documents]="data.documents" (documentAction)="documentAction($event)"></app-document-list>
+    </aside>
+  </div>
+</ng-container>

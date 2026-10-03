@@ -1,0 +1,124 @@
+<app-page-header title="Dashboard" [subtitle]="pageSubtitle()">
+  <a
+    page-header-actions
+    *appHasPermission="'CLAIM_CREATE'"
+    mat-flat-button
+    color="primary"
+    routerLink="/claims/create">
+    <mat-icon>add</mat-icon>
+    Create Claim
+  </a>
+</app-page-header>
+
+<ng-container *ngIf="loading()">
+  <section class="dashboard-state" aria-live="polite">
+    <mat-spinner diameter="36" aria-label="Loading dashboard"></mat-spinner>
+    <p>Loading your claims overview…</p>
+  </section>
+</ng-container>
+
+<mat-card *ngIf="!loading() && errorMessage()" class="dashboard-state error-state" role="alert">
+  <mat-icon aria-hidden="true">cloud_off</mat-icon>
+  <h2>Dashboard unavailable</h2>
+  <p>{{ errorMessage() }}</p>
+  <button mat-stroked-button type="button" (click)="loadDashboard()">Try again</button>
+</mat-card>
+
+<ng-container *ngIf="!loading() && dashboard() as data">
+  <section class="summary-grid" aria-label="Claims overview">
+    <mat-card *ngFor="let card of summaryCards()" class="summary-card">
+      <div class="summary-card-top">
+        <span class="summary-label">{{ card.label }}</span>
+        <span class="summary-icon" [ngClass]="'tone-' + card.tone">
+          <mat-icon aria-hidden="true">{{ card.icon }}</mat-icon>
+        </span>
+      </div>
+      <div class="summary-value">{{ card.value }}</div>
+    </mat-card>
+  </section>
+
+  <section class="workload-section" aria-labelledby="workload-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="workload-title">Your workload</h2>
+        <p>Current priorities for your role</p>
+      </div>
+    </div>
+    <div class="workload-grid">
+      <article *ngFor="let metric of data.workloadMetrics; let index = index" class="workload-card">
+        <span class="workload-marker" [class.marker-alt]="index % 2 === 1"></span>
+        <div>
+          <div class="workload-value">{{ metric.value }}</div>
+          <div class="workload-label">{{ metric.label }}</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <mat-card class="recent-claims-card">
+    <div class="table-heading">
+      <div>
+        <h2>Recent Claims</h2>
+        <p>Latest claims associated with your workspace</p>
+      </div>
+      <a mat-button routerLink="/claims">View all claims <mat-icon>arrow_forward</mat-icon></a>
+    </div>
+
+    <div *ngIf="data.recentClaims.length === 0" class="empty-state">
+      <span class="empty-icon"><mat-icon aria-hidden="true">inbox</mat-icon></span>
+      <h3>No claims to show yet</h3>
+      <p>Your recent claims will appear here when they are available.</p>
+    </div>
+
+    <div *ngIf="data.recentClaims.length > 0" class="table-scroll">
+      <table mat-table [dataSource]="data.recentClaims" class="claims-table">
+        <ng-container matColumnDef="claimNumber">
+          <th mat-header-cell *matHeaderCellDef>Claim Number</th>
+          <td mat-cell *matCellDef="let claim">
+            <a class="claim-number" [routerLink]="['/claims', claim.id]">{{ claim.claimNumber }}</a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="customer">
+          <th mat-header-cell *matHeaderCellDef>Customer</th>
+          <td mat-cell *matCellDef="let claim">{{ claim.customer }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="vehicle">
+          <th mat-header-cell *matHeaderCellDef>Vehicle</th>
+          <td mat-cell *matCellDef="let claim">{{ claim.vehicle }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="claimAmount">
+          <th mat-header-cell *matHeaderCellDef>Claim Amount</th>
+          <td mat-cell *matCellDef="let claim">{{ claim.claimAmount | currency:'USD':'symbol':'1.0-0' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let claim"><app-status-badge [status]="claim.status"></app-status-badge></td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdDate">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let claim">{{ claim.createdDate | date:'MMM d, y' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef><span class="sr-only">Action</span></th>
+          <td mat-cell *matCellDef="let claim" class="action-cell">
+            <a
+              mat-icon-button
+              [routerLink]="['/claims', claim.id]"
+              [attr.aria-label]="'View claim ' + claim.claimNumber">
+              <mat-icon>arrow_outward</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  </mat-card>
+</ng-container>

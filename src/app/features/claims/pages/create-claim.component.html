@@ -1,0 +1,185 @@
+<app-page-header
+  title="Create Claim"
+  subtitle="Provide the policyholder, vehicle, and incident details to start a new claim.">
+</app-page-header>
+
+<form class="claim-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-card class="form-section" formGroupName="customer">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">person_outline</mat-icon></span>
+      <div><h2>Customer Information</h2><p>Who is submitting this claim?</p></div>
+    </div>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Customer Name</mat-label>
+        <input matInput formControlName="name" autocomplete="name" maxlength="100">
+        <mat-error *ngIf="form.controls.customer.controls.name.hasError('required')">Customer name is required.</mat-error>
+        <mat-error *ngIf="form.controls.customer.controls.name.hasError('maxlength')">Name cannot exceed 100 characters.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Contact Number</mat-label>
+        <input matInput type="tel" formControlName="contactNumber" autocomplete="tel" placeholder="+1 (555) 555-0100">
+        <mat-error *ngIf="form.controls.customer.controls.contactNumber.hasError('required')">Contact number is required.</mat-error>
+        <mat-error *ngIf="form.controls.customer.controls.contactNumber.hasError('phoneNumber')">Enter a valid phone number.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email">
+        <mat-error *ngIf="form.controls.customer.controls.email.hasError('required')">Email is required.</mat-error>
+        <mat-error *ngIf="form.controls.customer.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+        <mat-error *ngIf="form.controls.customer.controls.email.hasError('maxlength')">Email cannot exceed 254 characters.</mat-error>
+      </mat-form-field>
+    </div>
+  </mat-card>
+
+  <mat-card class="form-section" formGroupName="policy">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">verified_user</mat-icon></span>
+      <div><h2>Policy Information</h2><p>Confirm the policy covering the insured vehicle.</p></div>
+    </div>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Policy Number</mat-label>
+        <input matInput formControlName="policyNumber" maxlength="30">
+        <mat-error *ngIf="form.controls.policy.controls.policyNumber.hasError('required')">Policy number is required.</mat-error>
+        <mat-error *ngIf="form.controls.policy.controls.policyNumber.hasError('maxlength')">Policy number cannot exceed 30 characters.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Policy Type</mat-label>
+        <mat-select formControlName="policyType">
+          <mat-option *ngFor="let policyType of policyTypes" [value]="policyType">{{ policyType.replace('_', ' ') }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.controls.policy.controls.policyType.hasError('required')">Policy type is required.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Policy Start Date</mat-label>
+        <input matInput type="date" formControlName="startDate">
+        <mat-error *ngIf="form.controls.policy.controls.startDate.hasError('required')">Policy start date is required.</mat-error>
+        <mat-error *ngIf="form.controls.policy.controls.startDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Policy End Date</mat-label>
+        <input matInput type="date" formControlName="endDate">
+        <mat-error *ngIf="form.controls.policy.controls.endDate.hasError('required')">Policy end date is required.</mat-error>
+        <mat-error *ngIf="form.controls.policy.controls.endDate.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+      </mat-form-field>
+    </div>
+    <p *ngIf="form.hasError('policyDateRange')" class="group-error" role="alert">Policy end date must be after the policy start date.</p>
+  </mat-card>
+
+  <mat-card class="form-section" formGroupName="vehicle">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">directions_car</mat-icon></span>
+      <div><h2>Vehicle Information</h2><p>Identify the vehicle listed on the policy.</p></div>
+    </div>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Registration Number</mat-label>
+        <input matInput formControlName="registrationNumber" maxlength="20">
+        <mat-error *ngIf="form.controls.vehicle.controls.registrationNumber.hasError('required')">Registration number is required.</mat-error>
+        <mat-error *ngIf="form.controls.vehicle.controls.registrationNumber.hasError('maxlength')">Registration number cannot exceed 20 characters.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Make</mat-label>
+        <input matInput formControlName="make" maxlength="50">
+        <mat-error *ngIf="form.controls.vehicle.controls.make.hasError('required')">Vehicle make is required.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Model</mat-label>
+        <input matInput formControlName="model" maxlength="50">
+        <mat-error *ngIf="form.controls.vehicle.controls.model.hasError('required')">Vehicle model is required.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Year</mat-label>
+        <input matInput type="number" formControlName="year" min="1900" [max]="maxVehicleYear">
+        <mat-error *ngIf="form.controls.vehicle.controls.year.hasError('required')">Vehicle year is required.</mat-error>
+        <mat-error *ngIf="form.controls.vehicle.controls.year.hasError('min') || form.controls.vehicle.controls.year.hasError('max')">Enter a valid vehicle year.</mat-error>
+      </mat-form-field>
+    </div>
+  </mat-card>
+
+  <mat-card class="form-section" formGroupName="incident">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">car_crash</mat-icon></span>
+      <div><h2>Incident Information</h2><p>Tell us when and how the incident happened.</p></div>
+    </div>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Incident Date</mat-label>
+        <input matInput type="date" formControlName="date">
+        <mat-error *ngIf="form.controls.incident.controls.date.hasError('required')">Incident date is required.</mat-error>
+        <mat-error *ngIf="form.controls.incident.controls.date.hasError('invalidDate')">Enter a valid calendar date.</mat-error>
+        <mat-error *ngIf="form.controls.incident.controls.date.hasError('futureDate')">Incident date cannot be in the future.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Incident Type</mat-label>
+        <mat-select formControlName="type">
+          <mat-option *ngFor="let claimType of claimTypes" [value]="claimType">{{ claimType.replace('_', ' ') }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.controls.incident.controls.type.hasError('required')">Incident type is required.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-row">
+        <mat-label>Incident Location</mat-label>
+        <input matInput formControlName="location" maxlength="120">
+        <mat-error *ngIf="form.controls.incident.controls.location.hasError('required')">Incident location is required.</mat-error>
+        <mat-error *ngIf="form.controls.incident.controls.location.hasError('maxlength')">Location cannot exceed 120 characters.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-row">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" rows="4" [maxlength]="maxDescriptionLength"></textarea>
+        <mat-hint align="end">{{ form.controls.incident.controls.description.value.length }} / {{ maxDescriptionLength }}</mat-hint>
+        <mat-error *ngIf="form.controls.incident.controls.description.hasError('required')">Incident description is required.</mat-error>
+        <mat-error *ngIf="form.controls.incident.controls.description.hasError('maxlength')">Description cannot exceed {{ maxDescriptionLength }} characters.</mat-error>
+      </mat-form-field>
+    </div>
+    <p *ngIf="form.hasError('incidentOutsidePolicy')" class="group-error" role="alert">Incident date must fall within the policy coverage dates.</p>
+  </mat-card>
+
+  <mat-card class="form-section" formGroupName="claim">
+    <div class="section-title">
+      <span class="section-icon"><mat-icon aria-hidden="true">request_quote</mat-icon></span>
+      <div><h2>Claim Information</h2><p>Estimate the loss and attach any documents that support your claim.</p></div>
+    </div>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Estimated Claim Amount</mat-label>
+        <span matPrefix>$&nbsp;</span>
+        <input matInput type="number" formControlName="estimatedClaimAmount" min="0.01" step="0.01">
+        <mat-error *ngIf="form.controls.claim.controls.estimatedClaimAmount.hasError('required')">Estimated amount is required.</mat-error>
+        <mat-error *ngIf="form.controls.claim.controls.estimatedClaimAmount.hasError('min')">Claim amount must be greater than zero.</mat-error>
+      </mat-form-field>
+      <div class="upload-field">
+        <span class="upload-label">Supporting Documents <span class="optional-label">Optional</span></span>
+        <input #fileInput class="file-input" type="file" accept=".pdf,image/*" multiple (change)="onFilesSelected($event)" aria-label="Choose supporting documents">
+        <button mat-stroked-button type="button" class="upload-button" (click)="fileInput.click()">
+          <mat-icon>attach_file</mat-icon>
+          Choose files
+        </button>
+        <span class="upload-hint">PDF or image files</span>
+        <ul *ngIf="form.controls.claim.controls.supportingDocuments.value.length" class="file-list">
+          <li *ngFor="let file of form.controls.claim.controls.supportingDocuments.value; let index = index">
+            <mat-icon aria-hidden="true">description</mat-icon>
+            <span>{{ file.name }}</span>
+            <button mat-icon-button type="button" [attr.aria-label]="'Remove ' + file.name" (click)="removeFile(index)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </mat-card>
+
+  <div *ngIf="errorMessage()" class="submit-error" role="alert">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    {{ errorMessage() }}
+  </div>
+
+  <footer class="form-actions">
+    <a mat-button routerLink="/claims" [disabled]="submitting()">Cancel</a>
+    <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+      <mat-spinner *ngIf="submitting()" diameter="18" aria-label="Submitting claim"></mat-spinner>
+      <mat-icon *ngIf="!submitting()">send</mat-icon>
+      {{ submitting() ? 'Submitting…' : 'Submit Claim' }}
+    </button>
+  </footer>
+</form>

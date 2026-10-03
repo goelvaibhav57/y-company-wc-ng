@@ -1,0 +1,38 @@
+.app-toolbar {
+	min-height: 64px;
+	gap: 12px;
+}
+
+.brand-mark {
+	display: inline-grid;
+	width: 34px;
+	height: 34px;
+	place-items: center;
+	border: 1px solid currentColor;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.toolbar-caption {
+	margin-left: auto;
+	font-size: 14px;
+	font-weight: 400;
+	opacity: 0.85;
+}
+
+.app-content {
+	width: min(100% - 48px, 1120px);
+	margin: 40px auto;
+}
+
+@media (max-width: 600px) {
+	.app-content {
+		width: min(100% - 32px, 1120px);
+		margin: 24px auto;
+	}
+
+	.toolbar-caption {
+		display: none;
+	}
+}
