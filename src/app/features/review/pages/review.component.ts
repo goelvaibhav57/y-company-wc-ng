@@ -8,7 +8,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Permission, Role, User } from '../../../core/auth/auth.models';
 import { PermissionService } from '../../../core/auth/permission.service';
@@ -17,7 +16,7 @@ import { ClaimService } from '../../claims/services/claim.service';
 import { ClaimActivityComponent } from '../../claims/components/claim-activity/claim-activity.component';
 import { ClaimSummaryComponent } from '../../claims/components/claim-summary/claim-summary.component';
 import { ClaimTimelineComponent } from '../../claims/components/claim-timeline/claim-timeline.component';
-import { DocumentListComponent } from '../../claims/components/document-list/document-list.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { SurveyAssessment } from '../../survey/models/survey-assessment.model';
 import { SurveyService } from '../../survey/services/survey.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -25,6 +24,10 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
 import { ReviewDecisionDialogComponent } from '../components/review-decision-dialog.component';
 import { ReviewDecisionType } from '../models/review-decision.model';
 import { ReviewService } from '../services/review.service';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
 
 interface ReviewData {
   readonly claim: Claim;
@@ -44,12 +47,13 @@ interface ReviewData {
     CurrencyPipe,
     DatePipe,
     DocumentListComponent,
+    ErrorStateComponent,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
+    LoadingIndicatorComponent,
     PageHeaderComponent,
     RouterLink,
     StatusBadgeComponent
@@ -66,8 +70,9 @@ export class ReviewComponent {
   private readonly claimService = inject(ClaimService);
   private readonly surveyService = inject(SurveyService);
   private readonly reviewService = inject(ReviewService);
+  private readonly errorHandling = inject(ErrorHandlingService);
   private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly reviewData = signal<ReviewData | null>(null);
@@ -89,10 +94,6 @@ export class ReviewComponent {
     return value.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
-  documentAction(document: ClaimDocument): void {
-    this.snackBar.open(`${document.fileName} is a mock document preview.`, 'Dismiss', { duration: 3500 });
-  }
-
   constructor() {
     const claimId = this.route.snapshot.paramMap.get('id');
     const user = this.authService.getCurrentUser();
@@ -105,6 +106,15 @@ export class ReviewComponent {
     this.load(claimId, user);
   }
 
+  retry(): void {
+    const claimId = this.route.snapshot.paramMap.get('id');
+    const user = this.authService.getCurrentUser();
+    if (!claimId || !user || user.role !== Role.Adjuster) {
+      this.errorMessage.set('You are not assigned to review this claim.');
+      return;
+    }
+    this.load(claimId, user);
+  }
   openDecision(decision: ReviewDecisionType): void {
     const claim = this.reviewData()?.claim;
     const allowed = decision === 'APPROVE' ? this.canApprove()
@@ -140,8 +150,8 @@ export class ReviewComponent {
           documents: this.claimService.getClaimDocuments(claim)
         });
       }),
-      catchError(() => {
-        this.errorMessage.set('We could not load this claim review. Please try again.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'review.load', 'We could not load this claim review. Please try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -165,7 +175,7 @@ export class ReviewComponent {
     this.errorMessage.set(null);
     operation.pipe(
       catchError((error: unknown) => {
-        this.errorMessage.set(error instanceof Error ? error.message : 'The decision could not be saved. Please try again.');
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'review.decision', 'The decision could not be saved. Please try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -180,7 +190,7 @@ export class ReviewComponent {
         : decision === 'REJECT'
           ? 'Claim rejected.'
           : 'Additional information requested.';
-      this.snackBar.open(successMessage, 'Dismiss', { duration: 4000 });
+      this.notifications.success(successMessage);
       void this.router.navigate(['/claims', claim.id]);
     });
   }

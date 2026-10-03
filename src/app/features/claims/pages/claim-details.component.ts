@@ -7,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PermissionService } from '../../../core/auth/permission.service';
 import { Permission, Role } from '../../../core/auth/auth.models';
@@ -16,8 +15,12 @@ import { ClaimService } from '../services/claim.service';
 import { ClaimActivityComponent } from '../components/claim-activity/claim-activity.component';
 import { ClaimSummaryComponent } from '../components/claim-summary/claim-summary.component';
 import { ClaimTimelineComponent } from '../components/claim-timeline/claim-timeline.component';
-import { DocumentListComponent } from '../components/document-list/document-list.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
 
 interface ClaimDetailsData {
   readonly claim: Claim;
@@ -44,7 +47,7 @@ const ACTIONS_BY_ROLE: Readonly<Partial<Record<Role, readonly ClaimAction[]>>> =
   }],
   [Role.Adjuster]: [{
     label: 'Review Claim', icon: 'rate_review', route: 'review', permission: Permission.ClaimReview,
-    allowedStatuses: [ClaimStatus.UnderReview, ClaimStatus.AdditionalInformationRequired]
+    allowedStatuses: [ClaimStatus.SurveyCompleted, ClaimStatus.UnderReview, ClaimStatus.AdditionalInformationRequired]
   }],
   [Role.Workshop]: [{
     label: 'Process Repair', icon: 'handyman', route: 'workshop', permission: Permission.ClaimWorkshopUpdate,
@@ -61,11 +64,12 @@ const ACTIONS_BY_ROLE: Readonly<Partial<Record<Role, readonly ClaimAction[]>>> =
     ClaimTimelineComponent,
     CommonModule,
     DocumentListComponent,
+    ErrorStateComponent,
+    LoadingIndicatorComponent,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
     PageHeaderComponent,
     RouterLink
   ],
@@ -78,7 +82,8 @@ export class ClaimDetailsComponent {
   private readonly authService = inject(AuthService);
   private readonly permissionService = inject(PermissionService);
   private readonly claimService = inject(ClaimService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly errorHandling = inject(ErrorHandlingService);
+  private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly details = signal<ClaimDetailsData | null>(null);
@@ -94,6 +99,12 @@ export class ClaimDetailsComponent {
     return (ACTIONS_BY_ROLE[role] ?? []).filter((action) =>
       action.allowedStatuses.includes(claim.status) && this.permissionService.hasPermission(action.permission)
     );
+  });
+  readonly canUploadDocuments = computed(() => {
+    const claim = this.details()?.claim;
+    return Boolean(claim && this.authService.currentRole() === Role.Customer
+      && claim.status === ClaimStatus.AdditionalInformationRequired
+      && this.permissionService.hasPermission(Permission.ClaimUpdate));
   });
 
   constructor() {
@@ -120,8 +131,8 @@ export class ClaimDetailsComponent {
               })
             : of(null)
           ),
-          catchError(() => {
-            this.errorMessage.set('We could not load this claim. Please try again.');
+          catchError((error: unknown) => {
+            this.errorMessage.set(this.errorHandling.messageFor(error, 'claims.details', 'We could not load this claim. Please try again.'));
             return of(null);
           })
         );
@@ -156,8 +167,8 @@ export class ClaimDetailsComponent {
           })
         : of(null)
       ),
-      catchError(() => {
-        this.errorMessage.set('We could not load this claim. Please try again.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'claims.details.retry', 'We could not load this claim. Please try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -177,12 +188,8 @@ export class ClaimDetailsComponent {
 
   runAction(action: ClaimAction): void {
     if (action.label === 'Add Information') {
-      this.snackBar.open('Additional information upload will be available here.', 'Dismiss', { duration: 3500 });
+      this.notifications.info('Additional information upload will be available here.');
     }
-  }
-
-  documentAction(document: ClaimDocument): void {
-    this.snackBar.open(`${document.fileName} is a mock document preview.`, 'Dismiss', { duration: 3500 });
   }
 
   get subtitle(): string {

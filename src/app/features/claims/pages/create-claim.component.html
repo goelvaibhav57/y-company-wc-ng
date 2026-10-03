@@ -24,7 +24,7 @@
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="email">
+        <input matInput type="email" formControlName="email" autocomplete="email" readonly>
         <mat-error *ngIf="form.controls.customer.controls.email.hasError('required')">Email is required.</mat-error>
         <mat-error *ngIf="form.controls.customer.controls.email.hasError('email')">Enter a valid email address.</mat-error>
         <mat-error *ngIf="form.controls.customer.controls.email.hasError('maxlength')">Email cannot exceed 254 characters.</mat-error>
@@ -148,31 +148,18 @@
         <mat-error *ngIf="form.controls.claim.controls.estimatedClaimAmount.hasError('required')">Estimated amount is required.</mat-error>
         <mat-error *ngIf="form.controls.claim.controls.estimatedClaimAmount.hasError('min')">Claim amount must be greater than zero.</mat-error>
       </mat-form-field>
-      <div class="upload-field">
-        <span class="upload-label">Supporting Documents <span class="optional-label">Optional</span></span>
-        <input #fileInput class="file-input" type="file" accept=".pdf,image/*" multiple (change)="onFilesSelected($event)" aria-label="Choose supporting documents">
-        <button mat-stroked-button type="button" class="upload-button" (click)="fileInput.click()">
-          <mat-icon>attach_file</mat-icon>
-          Choose files
-        </button>
-        <span class="upload-hint">PDF or image files</span>
-        <ul *ngIf="form.controls.claim.controls.supportingDocuments.value.length" class="file-list">
-          <li *ngFor="let file of form.controls.claim.controls.supportingDocuments.value; let index = index">
-            <mat-icon aria-hidden="true">description</mat-icon>
-            <span>{{ file.name }}</span>
-            <button mat-icon-button type="button" [attr.aria-label]="'Remove ' + file.name" (click)="removeFile(index)">
-              <mat-icon>close</mat-icon>
-            </button>
-          </li>
-        </ul>
-      </div>
+      <app-document-list
+        class="full-row"
+        [documents]="[]"
+        claimId="new-claim"
+        [uploadedBy]="form.controls.customer.controls.name.value"
+        [uploadEnabled]="true"
+        (fileAccepted)="onSupportingDocumentSelected($event)">
+      </app-document-list>
     </div>
   </mat-card>
 
-  <div *ngIf="errorMessage()" class="submit-error" role="alert">
-    <mat-icon aria-hidden="true">error_outline</mat-icon>
-    {{ errorMessage() }}
-  </div>
+  <app-error-state *ngIf="errorMessage()" title="Claim submission failed" [message]="errorMessage()!" retryLabel=""></app-error-state>
 
   <footer class="form-actions">
     <a mat-button routerLink="/claims" [disabled]="submitting()">Cancel</a>

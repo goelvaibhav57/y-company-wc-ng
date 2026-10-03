@@ -20,4 +20,8 @@ export class AppHeaderComponent {
 
   @Input() userName = 'Alex Morgan';
   @Input() userRole = 'Claims Administrator';
+
+  get userInitials(): string {
+    return this.userName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'EC';
+  }
 }

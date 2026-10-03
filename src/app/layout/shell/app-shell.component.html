@@ -11,7 +11,7 @@
     [opened]="!isMobile() || mobileNavigationOpen()"
     [disableClose]="!isMobile()"
     (closedStart)="closeMobileNavigation()">
-    <app-sidebar (navigationSelected)="closeMobileNavigation()"></app-sidebar>
+    <app-sidebar [currentRole]="authService.currentRole()" (navigationSelected)="closeMobileNavigation()"></app-sidebar>
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-content">

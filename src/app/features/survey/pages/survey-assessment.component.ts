@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, of, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -12,16 +12,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth/auth.service';
-import { Claim } from '../../claims/models/claim.models';
+import { User } from '../../../core/auth/auth.models';
+import { Claim, ClaimDocument } from '../../claims/models/claim.models';
 import { ClaimService } from '../../claims/services/claim.service';
 import { ClaimSummaryComponent } from '../../claims/components/claim-summary/claim-summary.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { validIsoDateValidator } from '../../../shared/validators/claim-form.validators';
 import { DamageSeverity, SurveyAssessment, SurveyAssessmentInput } from '../models/survey-assessment.model';
 import { SurveyService } from '../services/survey.service';
-import { ConfirmSurveySubmitDialogComponent } from '../components/confirm-survey-submit-dialog.component';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { ConfirmationDialogComponent } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
 
 @Component({
   selector: 'app-survey-assessment',
@@ -29,6 +34,8 @@ import { ConfirmSurveySubmitDialogComponent } from '../components/confirm-survey
   imports: [
     ClaimSummaryComponent,
     CommonModule,
+    DocumentListComponent,
+    ErrorStateComponent,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
@@ -37,7 +44,7 @@ import { ConfirmSurveySubmitDialogComponent } from '../components/confirm-survey
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSnackBarModule,
+    LoadingIndicatorComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink
@@ -53,11 +60,13 @@ export class SurveyAssessmentComponent {
   private readonly authService = inject(AuthService);
   private readonly claimService = inject(ClaimService);
   private readonly surveyService = inject(SurveyService);
+  private readonly errorHandling = inject(ErrorHandlingService);
   private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly claim = signal<Claim | null>(null);
+  readonly documents = signal<readonly ClaimDocument[]>([]);
   readonly savedAssessment = signal<SurveyAssessment | null>(null);
   readonly loading = signal(true);
   readonly savingDraft = signal(false);
@@ -94,18 +103,39 @@ export class SurveyAssessmentComponent {
       return;
     }
 
+    this.loadClaim(claimId, user);
+  }
+
+  retry(): void {
+    const claimId = this.route.snapshot.paramMap.get('id');
+    const user = this.authService.getCurrentUser();
+    if (!claimId || !user) {
+      this.loading.set(false);
+      this.errorMessage.set('This claim is not available. Sign in and try again.');
+      return;
+    }
+    this.loadClaim(claimId, user);
+  }
+
+  private loadClaim(claimId: string, user: User): void {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    this.claim.set(null);
+    this.savedAssessment.set(null);
     this.claimService.getClaimById(claimId, user).pipe(
       switchMap((claim) => {
         if (!claim || !this.claimService.isSurveyorAssigned(claimId, user)) {
           return of(null);
         }
         this.claim.set(claim);
-        return this.surveyService.getAssessment(claimId, user).pipe(
-          switchMap((assessment) => of({ claim, assessment }))
-        );
+        return forkJoin({
+          claim: of(claim),
+          assessment: this.surveyService.getAssessment(claimId, user),
+          documents: this.claimService.getClaimDocuments(claim)
+        });
       }),
-      catchError(() => {
-        this.errorMessage.set('You are not assigned to assess this claim, or the claim is unavailable.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'survey.load', 'You are not assigned to assess this claim, or the claim is unavailable.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -113,6 +143,7 @@ export class SurveyAssessmentComponent {
       if (result) {
         this.claim.set(result.claim);
         this.savedAssessment.set(result.assessment);
+        this.documents.set(result.documents);
         if (result.assessment) {
           this.form.patchValue({
             inspectionDate: result.assessment.inspectionDate,
@@ -141,8 +172,8 @@ export class SurveyAssessmentComponent {
     this.savingDraft.set(true);
     this.errorMessage.set(null);
     this.surveyService.saveDraft(this.createInput(claim, user.email), user).pipe(
-      catchError(() => {
-        this.errorMessage.set('We could not save your draft. Please try again.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'survey.save-draft', 'We could not save your draft. Please try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -150,7 +181,7 @@ export class SurveyAssessmentComponent {
       this.savingDraft.set(false);
       if (assessment) {
         this.savedAssessment.set(assessment);
-        this.snackBar.open('Survey draft saved. The claim workflow has not been completed.', 'Dismiss', { duration: 4000 });
+        this.notifications.info('Survey draft saved. The claim workflow has not been completed.');
       }
     });
   }
@@ -166,11 +197,17 @@ export class SurveyAssessmentComponent {
       return;
     }
 
-    this.dialog.open(ConfirmSurveySubmitDialogComponent, {
+    this.dialog.open(ConfirmationDialogComponent, {
       width: '440px',
-      data: { claimNumber: claim.claimNumber },
+      data: {
+        title: 'Submit survey assessment?',
+        message: `The assessment for ${claim.claimNumber} will be submitted to the adjuster. The claim status will change to Survey Completed.`,
+        confirmLabel: 'Submit assessment',
+        cancelLabel: 'Continue editing',
+        icon: 'send'
+      },
       ariaLabel: 'Confirm survey assessment submission'
-    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed) => {
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed: boolean | undefined) => {
       if (confirmed) {
         this.submitAssessment();
       }
@@ -187,8 +224,8 @@ export class SurveyAssessmentComponent {
     this.submitting.set(true);
     this.errorMessage.set(null);
     this.surveyService.submitAssessment(this.createInput(claim, user.email), user).pipe(
-      catchError(() => {
-        this.errorMessage.set('We could not submit the assessment. Please try again.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'survey.submit', 'We could not submit the assessment. Please try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -196,7 +233,7 @@ export class SurveyAssessmentComponent {
       this.submitting.set(false);
       if (assessment) {
         this.savedAssessment.set(assessment);
-        this.snackBar.open('Survey assessment submitted successfully.', 'Dismiss', { duration: 4000 });
+        this.notifications.success('Survey assessment submitted successfully.');
         void this.router.navigate(['/claims', claim.id]);
       }
     });

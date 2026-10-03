@@ -28,8 +28,8 @@ describe('ClaimDetailsComponent', () => {
     action: 'Claim created', remarks: 'Claim submitted.', status: ClaimStatus.Submitted
   }];
   const documents: readonly ClaimDocument[] = [{
-    id: 'document-1', claimId: claim.id, fileName: 'policy.pdf', documentType: 'Policy Document',
-    uploadedDate: '2026-09-02', uploadedBy: user.name
+    id: 'document-1', claimId: claim.id, fileName: 'policy.pdf', documentType: 'POLICY',
+    uploadedDate: '2026-09-02', uploadedBy: user.name, fileSize: 2048, status: 'UPLOADED'
   }];
 
   function createComponent(role: Role, status: ClaimStatus): {
@@ -96,6 +96,7 @@ describe('ClaimDetailsComponent', () => {
   it('shows only the status-eligible action for each operational role', () => {
     const cases: ReadonlyArray<readonly [Role, ClaimStatus, string]> = [
       [Role.Surveyor, ClaimStatus.SurveyAssigned, 'Start Survey'],
+      [Role.Adjuster, ClaimStatus.SurveyCompleted, 'Review Claim'],
       [Role.Adjuster, ClaimStatus.UnderReview, 'Review Claim'],
       [Role.Workshop, ClaimStatus.WorkshopAssigned, 'Process Repair']
     ];

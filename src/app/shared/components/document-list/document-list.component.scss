@@ -1,0 +1,16 @@
+:host { display: block; }
+.panel-card { padding: 20px 22px; border: 1px solid #edf0f5; border-radius: 12px; box-shadow: 0 3px 14px rgba(29, 50, 80, .035); }
+.panel-heading h2 { margin: 0; color: #1b2a40; font-size: 16px; font-weight: 650; }
+.panel-heading p { margin: 5px 0 16px; color: #8491a3; font-size: 12px; }
+.table-scroll { overflow-x: auto; margin-top: 12px; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th { padding: 10px 12px; color: #738197; font-size: 11px; font-weight: 600; white-space: nowrap; }
+td { padding: 10px 12px; border-top: 1px solid #eef1f5; color: #56657a; font-size: 12px; white-space: nowrap; }
+td:first-child { display: flex; align-items: center; gap: 9px; max-width: 300px; }
+td strong { overflow: hidden; color: #35465c; text-overflow: ellipsis; }
+.file-icon { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 8px; background: #eef4ff; color: #3865a5; }
+.file-icon mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.empty-state { display: flex; align-items: center; gap: 9px; padding: 28px 8px; color: #8793a3; font-size: 13px; }
+.empty-state mat-icon { color: #8b9bb0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 700px) { .panel-card { padding: 16px; } table { min-width: 720px; } }

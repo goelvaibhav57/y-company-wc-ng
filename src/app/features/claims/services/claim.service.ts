@@ -9,6 +9,8 @@ import {
   ClaimStatus,
   ClaimType,
   CreateClaimRequest,
+  DocumentStatus,
+  DocumentType,
   Policy,
   Vehicle
 } from '../models/claim.models';
@@ -85,6 +87,7 @@ const REVIEW_STATUSES: readonly ClaimStatus[] = [
   ClaimStatus.AdditionalInformationRequired
 ];
 const WORKSHOP_STATUSES: readonly ClaimStatus[] = [
+  ClaimStatus.Approved,
   ClaimStatus.WorkshopAssigned,
   ClaimStatus.RepairInProgress,
   ClaimStatus.RepairCompleted
@@ -96,6 +99,18 @@ export class ClaimService {
 
   getClaimsForUser(user: User): Observable<readonly Claim[]> {
     return of(this.scopeClaims(user)).pipe(delay(180));
+  }
+
+  getDashboardClaimsForUser(user: User): Observable<readonly Claim[]> {
+    const claims = this.claims.filter((claim) => {
+      switch (user.role) {
+        case Role.Customer: return claim.customer.email === user.email;
+        case Role.Surveyor: return claim.assignedTo.surveyorEmail === user.email;
+        case Role.Adjuster: return claim.assignedTo.adjusterEmail === user.email;
+        case Role.Workshop: return claim.assignedTo.workshopEmail === user.email;
+      }
+    });
+    return of(claims).pipe(delay(180));
   }
 
   getClaimById(id: string, user: User): Observable<Claim | null> {
@@ -175,8 +190,12 @@ export class ClaimService {
       incidentDate: request.incidentDate,
       incidentLocation: request.incidentLocation,
       description: request.description,
-      status: ClaimStatus.Submitted,
-      assignedTo: { surveyorEmail: SURVEYOR_EMAIL, adjusterEmail: ADJUSTER_EMAIL },
+      status: ClaimStatus.SurveyAssigned,
+      assignedTo: {
+        surveyorEmail: SURVEYOR_EMAIL,
+        adjusterEmail: ADJUSTER_EMAIL,
+        workshopEmail: WORKSHOP_EMAIL
+      },
       supportingDocuments: request.supportingDocuments,
       createdDate: date,
       updatedDate: date
@@ -319,19 +338,20 @@ export class ClaimService {
 
   private createClaimDocuments(claim: Claim): readonly ClaimDocument[] {
     const seededDocuments: readonly Omit<ClaimDocument, 'claimId' | 'id'>[] = [
-      { fileName: 'policy-schedule.pdf', documentType: 'Policy Document', uploadedDate: claim.createdDate, uploadedBy: claim.customer.name },
-      { fileName: 'vehicle-registration.pdf', documentType: 'Vehicle Registration', uploadedDate: claim.createdDate, uploadedBy: claim.customer.name },
-      { fileName: 'accident-photos.zip', documentType: 'Accident Photos', uploadedDate: addDays(claim.createdDate, 1), uploadedBy: claim.customer.name }
+      { fileName: 'policy-schedule.pdf', documentType: DocumentType.Policy, uploadedDate: claim.createdDate, uploadedBy: claim.customer.name, fileSize: 245_760, status: 'UPLOADED' },
+      { fileName: 'vehicle-registration.pdf', documentType: DocumentType.VehicleRegistration, uploadedDate: claim.createdDate, uploadedBy: claim.customer.name, fileSize: 182_400, status: 'UPLOADED' },
+      { fileName: 'accident-photos.jpg', documentType: DocumentType.AccidentPhoto, uploadedDate: addDays(claim.createdDate, 1), uploadedBy: claim.customer.name, fileSize: 1_420_000, status: 'UPLOADED' }
     ];
     const submittedFiles = claim.supportingDocuments ?? [];
-    const documents = [
+    const documents: readonly Omit<ClaimDocument, 'claimId' | 'id'>[] = [
       ...seededDocuments,
-      ...submittedFiles.map((fileName, index) => ({
+      ...submittedFiles.map((fileName) => ({
         fileName,
-        documentType: 'Supporting Document',
+        documentType: DocumentType.Other,
         uploadedDate: claim.createdDate,
         uploadedBy: claim.customer.name,
-        key: `support-${index}`
+        fileSize: 0,
+        status: 'UPLOADED' as DocumentStatus
       }))
     ];
 
@@ -341,7 +361,9 @@ export class ClaimService {
       fileName: document.fileName,
       documentType: document.documentType,
       uploadedDate: document.uploadedDate,
-      uploadedBy: document.uploadedBy
+      uploadedBy: document.uploadedBy,
+      fileSize: document.fileSize,
+      status: document.status
     }));
   }
 }

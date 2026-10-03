@@ -15,6 +15,12 @@ export const routes: Routes = [
 		title: 'Sign in | eClaims'
 	},
 	{
+		path: 'access-denied',
+		loadComponent: () => import('./features/auth/pages/access-denied/access-denied.component')
+			.then((module) => module.AccessDeniedComponent),
+		title: 'Access Denied | eClaims'
+	},
+	{
 		path: '',
 		component: AppShellComponent,
 		canActivate: [authGuard],
@@ -95,12 +101,6 @@ export const routes: Routes = [
 				data: { title: 'Claims', subtitle: 'Browse and manage claims', permission: Permission.ClaimRead },
 				title: 'Claims | eClaims'
 			},
-			{
-				path: 'access-denied',
-				loadComponent: () => import('./features/auth/pages/access-denied/access-denied.component')
-					.then((module) => module.AccessDeniedComponent),
-				title: 'Access Denied | eClaims'
-			}
 		]
 	},
 	{

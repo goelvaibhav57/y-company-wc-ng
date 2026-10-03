@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, Subject } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Role, User } from '../../../core/auth/auth.models';
@@ -41,7 +42,7 @@ describe('WorkshopComponent', () => {
     dialogResult = new Subject<boolean>();
 
     TestBed.configureTestingModule({
-      imports: [WorkshopComponent],
+      imports: [WorkshopComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: claim.id }) } } },
@@ -50,6 +51,7 @@ describe('WorkshopComponent', () => {
           provide: ClaimService,
           useValue: {
             getClaimHistory: () => of([]),
+            getClaimDocuments: () => of([]),
             getClaimById: () => of(claim)
           }
         },
@@ -58,6 +60,7 @@ describe('WorkshopComponent', () => {
         { provide: MatSnackBar, useValue: { open: jasmine.createSpy('open') } }
       ]
     });
+    TestBed.overrideProvider(MatDialog, { useValue: { open: () => ({ afterClosed: () => dialogResult.asObservable() }) } });
     fixture = TestBed.createComponent(WorkshopComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

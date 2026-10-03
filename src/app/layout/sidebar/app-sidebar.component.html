@@ -1,17 +1,18 @@
 <div class="sidebar-content">
   <p class="navigation-label">WORKSPACE</p>
   <mat-nav-list aria-label="Main navigation">
-    <a
-      *ngFor="let item of navigationItems"
-      mat-list-item
-      [routerLink]="item.route"
-      routerLinkActive="active-link"
-      [routerLinkActiveOptions]="{ exact: item.route === '/claims' }"
-      (click)="navigationSelected.emit()"
-      [hidden]="!isVisible(item)">
-      <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-      <span matListItemTitle>{{ item.label }}</span>
-    </a>
+    <ng-container *ngFor="let item of navigationItems">
+      <a
+        *ngIf="isVisible(item)"
+        mat-list-item
+        [routerLink]="item.route"
+        routerLinkActive="active-link"
+        [routerLinkActiveOptions]="{ exact: item.route === '/claims' }"
+        (click)="navigationSelected.emit()">
+        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+        <span matListItemTitle>{{ item.label }}</span>
+      </a>
+    </ng-container>
   </mat-nav-list>
 
   <div class="sidebar-footer">

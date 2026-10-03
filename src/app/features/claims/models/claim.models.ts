@@ -86,14 +86,7 @@ export interface ClaimActivity {
   readonly status?: ClaimStatus;
 }
 
-export interface ClaimDocument {
-  readonly id: string;
-  readonly claimId: string;
-  readonly fileName: string;
-  readonly documentType: string;
-  readonly uploadedDate: string;
-  readonly uploadedBy: string;
-}
+export { ClaimDocument, DocumentStatus, DocumentType } from '../../../shared/components/document-list/document.model';
 
 export interface ClaimListFilters {
   readonly search: string;

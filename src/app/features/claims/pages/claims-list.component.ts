@@ -18,6 +18,10 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { ClaimTableComponent } from '../components/claim-table/claim-table.component';
 import { ClaimService } from '../services/claim.service';
 import { Claim, ClaimListFilters, ClaimStatus } from '../models/claim.models';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
 
 @Component({
   selector: 'app-claims-list',
@@ -25,6 +29,8 @@ import { Claim, ClaimListFilters, ClaimStatus } from '../models/claim.models';
   imports: [
     ClaimTableComponent,
     CommonModule,
+    EmptyStateComponent,
+    ErrorStateComponent,
     HasPermissionDirective,
     MatButtonModule,
     MatCardModule,
@@ -33,6 +39,7 @@ import { Claim, ClaimListFilters, ClaimStatus } from '../models/claim.models';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    LoadingIndicatorComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink
@@ -44,6 +51,7 @@ import { Claim, ClaimListFilters, ClaimStatus } from '../models/claim.models';
 export class ClaimsListComponent {
   private readonly authService = inject(AuthService);
   private readonly claimService = inject(ClaimService);
+  private readonly errorHandling = inject(ErrorHandlingService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly createPermission = Permission.ClaimCreate;
@@ -111,10 +119,10 @@ export class ClaimsListComponent {
           this.applyFilters(this.filterForm.getRawValue());
           this.loading.set(false);
         },
-        error: () => {
+        error: (error: unknown) => {
           this.allClaims.set([]);
           this.filteredClaims.set([]);
-          this.errorMessage.set('We could not load claims. Please try again.');
+          this.errorMessage.set(this.errorHandling.messageFor(error, 'claims.list', 'We could not load claims. Please try again.'));
           this.loading.set(false);
         }
       });

@@ -45,13 +45,19 @@
           </button>
         </form>
 
-        <div class="demo-credentials">
-          <p class="demo-title">Demo accounts <span>· Password: Password123!</span></p>
+        <div class="demo-credentials" aria-labelledby="demo-users-title">
+          <div class="demo-heading">
+            <h2 id="demo-users-title">Demo Users</h2>
+            <p>Select a role to fill its email address.</p>
+          </div>
           <ul>
-            <li>customer@example.com</li>
-            <li>surveyor@example.com</li>
-            <li>adjuster@example.com</li>
-            <li>workshop@example.com</li>
+            <li *ngFor="let demoUser of demoUsers">
+              <button type="button" class="demo-user" (click)="selectDemoUser(demoUser.email)" [attr.aria-label]="'Use ' + demoUser.role + ' demo account, ' + demoUser.email">
+                <span class="demo-role">{{ demoUser.role }}</span>
+                <span class="demo-email">{{ demoUser.email }}</span>
+                <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+              </button>
+            </li>
           </ul>
         </div>
       </mat-card-content>

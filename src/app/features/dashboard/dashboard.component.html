@@ -10,19 +10,9 @@
   </a>
 </app-page-header>
 
-<ng-container *ngIf="loading()">
-  <section class="dashboard-state" aria-live="polite">
-    <mat-spinner diameter="36" aria-label="Loading dashboard"></mat-spinner>
-    <p>Loading your claims overview…</p>
-  </section>
-</ng-container>
+<app-loading-indicator *ngIf="loading()" message="Loading your claims overview…"></app-loading-indicator>
 
-<mat-card *ngIf="!loading() && errorMessage()" class="dashboard-state error-state" role="alert">
-  <mat-icon aria-hidden="true">cloud_off</mat-icon>
-  <h2>Dashboard unavailable</h2>
-  <p>{{ errorMessage() }}</p>
-  <button mat-stroked-button type="button" (click)="loadDashboard()">Try again</button>
-</mat-card>
+<app-error-state *ngIf="!loading() && errorMessage()" title="Dashboard unavailable" [message]="errorMessage()!" (retryRequested)="loadDashboard()"></app-error-state>
 
 <ng-container *ngIf="!loading() && dashboard() as data">
   <section class="summary-grid" aria-label="Claims overview">
@@ -64,11 +54,7 @@
       <a mat-button routerLink="/claims">View all claims <mat-icon>arrow_forward</mat-icon></a>
     </div>
 
-    <div *ngIf="data.recentClaims.length === 0" class="empty-state">
-      <span class="empty-icon"><mat-icon aria-hidden="true">inbox</mat-icon></span>
-      <h3>No claims to show yet</h3>
-      <p>Your recent claims will appear here when they are available.</p>
-    </div>
+    <app-empty-state *ngIf="data.recentClaims.length === 0" title="No claims to show yet" message="Your recent claims will appear here when they are available." icon="inbox"></app-empty-state>
 
     <div *ngIf="data.recentClaims.length > 0" class="table-scroll">
       <table mat-table [dataSource]="data.recentClaims" class="claims-table">

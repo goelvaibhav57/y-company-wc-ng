@@ -12,6 +12,10 @@ import { Permission } from '../../core/auth/auth.models';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
+import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../core/errors/error-handling.service';
 import { DashboardData, DashboardSummary } from './dashboard.models';
 import { DashboardService } from './dashboard.service';
 
@@ -30,6 +34,9 @@ interface SummaryCard {
     CurrencyPipe,
     DatePipe,
     HasPermissionDirective,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingIndicatorComponent,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
@@ -46,6 +53,7 @@ interface SummaryCard {
 export class DashboardComponent {
   private readonly authService = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
+  private readonly errorHandling = inject(ErrorHandlingService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly Permission = Permission;
@@ -90,16 +98,16 @@ export class DashboardComponent {
       return;
     }
 
-    this.dashboardService.getDashboard(user.role, user.email)
+    this.dashboardService.getDashboard(user)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
           this.dashboard.set(data);
           this.loading.set(false);
         },
-        error: () => {
+        error: (error: unknown) => {
           this.dashboard.set(null);
-          this.errorMessage.set('We could not load your dashboard. Please try again.');
+          this.errorMessage.set(this.errorHandling.messageFor(error, 'dashboard.load', 'We could not load your dashboard. Please try again.'));
           this.loading.set(false);
         }
       });

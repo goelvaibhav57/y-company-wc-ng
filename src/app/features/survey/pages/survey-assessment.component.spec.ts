@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, Subject } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Role, User } from '../../../core/auth/auth.models';
@@ -44,7 +45,7 @@ describe('SurveyAssessmentComponent', () => {
     dialogOpen = jasmine.createSpy('open').and.returnValue({ afterClosed: () => confirmationResult.asObservable() });
 
     TestBed.configureTestingModule({
-      imports: [SurveyAssessmentComponent],
+      imports: [SurveyAssessmentComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: claim.id }) } } },
@@ -53,7 +54,8 @@ describe('SurveyAssessmentComponent', () => {
           provide: ClaimService,
           useValue: {
             getClaimById: () => of(claim),
-            isSurveyorAssigned: () => true
+            isSurveyorAssigned: () => true,
+            getClaimDocuments: () => of([])
           }
         },
         { provide: SurveyService, useValue: { getAssessment: () => of(null), saveDraft, submitAssessment } },
@@ -61,6 +63,7 @@ describe('SurveyAssessmentComponent', () => {
         { provide: MatSnackBar, useValue: { open: jasmine.createSpy('open') } }
       ]
     });
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } });
     fixture = TestBed.createComponent(SurveyAssessmentComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -123,17 +126,22 @@ describe('SurveyAssessmentComponent', () => {
   it('reports an unassigned claim as unavailable', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [SurveyAssessmentComponent],
+      imports: [SurveyAssessmentComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: claim.id }) } } },
         { provide: AuthService, useValue: { getCurrentUser: () => user } },
-        { provide: ClaimService, useValue: { getClaimById: () => of(claim), isSurveyorAssigned: () => false } },
+        { provide: ClaimService, useValue: {
+          getClaimById: () => of(claim),
+          isSurveyorAssigned: () => false,
+          getClaimDocuments: () => of([])
+        } },
         { provide: SurveyService, useValue: { getAssessment: () => of(null), saveDraft, submitAssessment } },
         { provide: MatDialog, useValue: { open: dialogOpen } },
         { provide: MatSnackBar, useValue: { open: jasmine.createSpy('open') } }
       ]
     });
+    TestBed.overrideProvider(MatDialog, { useValue: { open: dialogOpen } });
     fixture = TestBed.createComponent(SurveyAssessmentComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

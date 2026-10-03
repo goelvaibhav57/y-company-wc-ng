@@ -42,17 +42,9 @@
   </form>
 </mat-card>
 
-<section *ngIf="loading()" class="state-panel" aria-live="polite">
-  <mat-spinner diameter="36" aria-label="Loading claims"></mat-spinner>
-  <p>Loading claims…</p>
-</section>
+<app-loading-indicator *ngIf="loading()" message="Loading claims…"></app-loading-indicator>
 
-<mat-card *ngIf="!loading() && errorMessage()" class="state-panel error-panel" role="alert">
-  <mat-icon aria-hidden="true">cloud_off</mat-icon>
-  <h2>Claims unavailable</h2>
-  <p>{{ errorMessage() }}</p>
-  <button mat-stroked-button type="button" (click)="loadClaims()">Try again</button>
-</mat-card>
+<app-error-state *ngIf="!loading() && errorMessage()" title="Claims unavailable" [message]="errorMessage()!" (retryRequested)="loadClaims()"></app-error-state>
 
 <mat-card *ngIf="!loading() && !errorMessage()" class="claims-card">
   <div class="results-heading">
@@ -62,12 +54,14 @@
     </div>
   </div>
 
-  <div *ngIf="filteredClaims().length === 0" class="empty-state">
-    <span class="empty-icon"><mat-icon aria-hidden="true">search_off</mat-icon></span>
-    <h3>{{ allClaims().length === 0 ? 'No claims assigned' : 'No matching claims' }}</h3>
-    <p>{{ allClaims().length === 0 ? 'Claims available to your role will appear here.' : 'Try adjusting your search or filters.' }}</p>
-    <button *ngIf="hasActiveFilters()" mat-stroked-button type="button" (click)="clearFilters()">Clear filters</button>
-  </div>
+  <app-empty-state
+    *ngIf="filteredClaims().length === 0"
+    [title]="allClaims().length === 0 ? 'No claims assigned' : 'No matching claims'"
+    [message]="allClaims().length === 0 ? 'Claims available to your role will appear here.' : 'Try adjusting your search or filters.'"
+    [icon]="allClaims().length === 0 ? 'inbox' : 'search_off'"
+    [actionLabel]="hasActiveFilters() ? 'Clear filters' : ''"
+    (actionRequested)="clearFilters()">
+  </app-empty-state>
 
   <app-claim-table *ngIf="filteredClaims().length > 0" [claims]="filteredClaims()"></app-claim-table>
 </mat-card>

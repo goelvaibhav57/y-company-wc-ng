@@ -16,3 +16,16 @@ body {
 * {
 	box-sizing: border-box;
 }
+
+.eclaims-toast-success .mdc-snackbar__surface { background: #176b45 !important; }
+.eclaims-toast-error .mdc-snackbar__surface { background: #a72f35 !important; }
+.eclaims-toast-info .mdc-snackbar__surface { background: #315f9b !important; }
+.eclaims-toast-warning .mdc-snackbar__surface { background: #8a5a12 !important; }
+.eclaims-toast-success .mdc-snackbar__label,
+.eclaims-toast-error .mdc-snackbar__label,
+.eclaims-toast-info .mdc-snackbar__label,
+.eclaims-toast-warning .mdc-snackbar__label,
+.eclaims-toast-success .mat-mdc-button,
+.eclaims-toast-error .mat-mdc-button,
+.eclaims-toast-info .mat-mdc-button,
+.eclaims-toast-warning .mat-mdc-button { color: #fff !important; }

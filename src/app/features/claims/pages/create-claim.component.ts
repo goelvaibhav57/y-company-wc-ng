@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ClaimType, CreateClaimRequest } from '../models/claim.models';
 import { ClaimService } from '../services/claim.service';
@@ -20,6 +19,10 @@ import {
   validIsoDateValidator
 } from '../../../shared/validators/claim-form.validators';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 
 @Component({
   selector: 'app-create-claim',
@@ -33,7 +36,8 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSnackBarModule,
+    DocumentListComponent,
+    ErrorStateComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink
@@ -47,7 +51,8 @@ export class CreateClaimComponent {
   private readonly authService = inject(AuthService);
   private readonly claimService = inject(ClaimService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationService);
+  private readonly errorHandling = inject(ErrorHandlingService);
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -92,18 +97,9 @@ export class CreateClaimComponent {
     }
   }
 
-  onFilesSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const selectedFiles = Array.from(input.files ?? []);
+  onSupportingDocumentSelected(file: File): void {
     const documentsControl = this.form.controls.claim.controls.supportingDocuments;
-    documentsControl.setValue([...documentsControl.value, ...selectedFiles]);
-    documentsControl.markAsDirty();
-    input.value = '';
-  }
-
-  removeFile(index: number): void {
-    const documentsControl = this.form.controls.claim.controls.supportingDocuments;
-    documentsControl.setValue(documentsControl.value.filter((_file, fileIndex) => fileIndex !== index));
+    documentsControl.setValue([...documentsControl.value, file]);
     documentsControl.markAsDirty();
   }
 
@@ -132,7 +128,7 @@ export class CreateClaimComponent {
         id: currentUser.id,
         name: value.customer.name.trim(),
         contactNumber: value.customer.contactNumber.trim(),
-        email: value.customer.email.trim().toLowerCase()
+        email: currentUser.email
       },
       policy: {
         policyNumber: value.policy.policyNumber.trim().toUpperCase(),
@@ -157,12 +153,12 @@ export class CreateClaimComponent {
     this.claimService.createClaim(request).subscribe({
       next: (claim) => {
         this.submitting.set(false);
-        this.snackBar.open(`Claim ${claim.claimNumber} created successfully.`, 'Dismiss', { duration: 4500 });
+        this.notifications.success(`Claim ${claim.claimNumber} created successfully.`);
         void this.router.navigateByUrl(`/claims/${claim.id}`);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.submitting.set(false);
-        this.errorMessage.set('We could not submit your claim. Please try again.');
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'claims.create', 'We could not submit your claim. Please try again.'));
       }
     });
   }

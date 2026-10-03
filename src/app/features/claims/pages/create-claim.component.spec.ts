@@ -75,7 +75,7 @@ describe('CreateClaimComponent', () => {
     expect(createClaim).toHaveBeenCalled();
     expect(component.submitting()).toBeFalse();
     expect(snackbarOpen).toHaveBeenCalledWith(
-      'Claim CLM-2026-014 created successfully.', 'Dismiss', jasmine.objectContaining({ duration: 4500 })
+      'Claim CLM-2026-014 created successfully.', 'Dismiss', jasmine.objectContaining({ duration: 4000 })
     );
     expect(navigateByUrl).toHaveBeenCalledWith('/claims/claim-new-1');
   });

@@ -59,8 +59,9 @@ describe('ClaimService', () => {
         || claim.status === ClaimStatus.UnderReview
         || claim.status === ClaimStatus.AdditionalInformationRequired
     )).toBeTrue();
-    expect(workshopClaims.length).toBe(3);
+    expect(workshopClaims.length).toBe(4);
     expect(workshopClaims.every((claim) => claim.assignedTo.workshopEmail === 'workshop@example.com')).toBeTrue();
+    expect(workshopClaims.some((claim) => claim.status === ClaimStatus.Approved)).toBeTrue();
   });
 
   it('searches claim number, policy number, and customer name case-insensitively', async () => {
@@ -120,10 +121,12 @@ describe('ClaimService', () => {
       claimService.getClaimsForUser(demoUser('customer@example.com', Role.Customer))
     );
 
-    expect(createdClaim.status).toBe(ClaimStatus.Submitted);
+    expect(createdClaim.status).toBe(ClaimStatus.SurveyAssigned);
     expect(createdClaim.policyNumber).toBe(request.policy.policyNumber);
     expect(createdClaim.supportingDocuments).toEqual(['accident-photo.jpg']);
     expect(customerClaims.some((claim) => claim.id === createdClaim.id)).toBeTrue();
+    expect(claimService.isSurveyorAssigned(createdClaim.id, demoUser('surveyor@example.com', Role.Surveyor))).toBeTrue();
+    expect(claimService.canAssessClaim(createdClaim.id, demoUser('surveyor@example.com', Role.Surveyor))).toBeTrue();
   });
 
   it('returns details only to roles within their claim scope and builds history/documents', async () => {
@@ -140,7 +143,7 @@ describe('ClaimService', () => {
     const documents = await firstValueFrom(claimService.getClaimDocuments(customerClaim!));
     expect(history.map((activity) => activity.action)).toContain('Adjuster review');
     expect(history.find((activity) => activity.action === 'Claim created')?.status).toBe(ClaimStatus.Submitted);
-    expect(documents.map((document) => document.documentType)).toContain('Vehicle Registration');
+    expect(documents.map((document) => document.documentType)).toContain('VEHICLE_REGISTRATION');
     expect(documents.every((document) => document.claimId === customerClaim?.id)).toBeTrue();
   });
 });

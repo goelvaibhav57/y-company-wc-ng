@@ -1,0 +1,28 @@
+<mat-card class="panel-card">
+  <div class="panel-heading">
+    <div><h2>Documents</h2><p>{{ countLabel }}</p></div>
+  </div>
+
+  <app-document-upload *ngIf="uploadEnabled" (fileAccepted)="onFileAccepted($event)" (uploaded)="onUploadCompleted($event)"></app-document-upload>
+
+  <div *ngIf="displayDocuments.length === 0" class="empty-state">
+    <mat-icon aria-hidden="true">folder_open</mat-icon>
+    <span>No documents have been uploaded.</span>
+  </div>
+
+  <div *ngIf="displayDocuments.length > 0" class="table-scroll">
+    <table aria-label="Claim documents">
+      <thead><tr><th scope="col">Document</th><th scope="col">Type</th><th scope="col">Uploaded By</th><th scope="col">Date</th><th scope="col">Size</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let document of displayDocuments">
+          <td><span class="file-icon"><mat-icon aria-hidden="true">description</mat-icon></span><strong>{{ document.fileName }}</strong></td>
+          <td>{{ typeLabel(document.documentType) }}</td>
+          <td>{{ document.uploadedBy }}</td>
+          <td>{{ document.uploadedDate | date:'MMM d, y' }}</td>
+          <td>{{ formatSize(document.fileSize) }}</td>
+          <td><button mat-icon-button type="button" [attr.aria-label]="'View or download ' + document.fileName" (click)="openDocument(document)"><mat-icon>download</mat-icon></button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</mat-card>

@@ -7,17 +7,10 @@
   [subtitle]="claim() ? 'Update repairs for claim ' + claim()!.claimNumber + '.' : 'Manage approved vehicle repairs and completion.'">
 </app-page-header>
 
-<section *ngIf="loading()" class="page-state" aria-live="polite">
-  <mat-spinner diameter="38" aria-label="Loading repair"></mat-spinner>
-  <p>Loading workshop repair…</p>
-</section>
+<app-loading-indicator *ngIf="loading()" message="Loading workshop repair…"></app-loading-indicator>
 
-<mat-card *ngIf="!loading() && errorMessage() && !claim()" class="page-state error-state" role="alert">
-  <mat-icon aria-hidden="true">gpp_maybe</mat-icon>
-  <h2>Repair unavailable</h2>
-  <p>{{ errorMessage() }}</p>
-  <a mat-stroked-button routerLink="/claims">Back to Claims</a>
-</mat-card>
+<app-error-state *ngIf="!loading() && errorMessage() && !claim()" title="Repair unavailable" [message]="errorMessage()!" retryLabel=""></app-error-state>
+<app-error-state *ngIf="!loading() && errorMessage() && !claim()" title="Repair unavailable" [message]="errorMessage()!" (retryRequested)="retry()"></app-error-state>
 
 <ng-container *ngIf="!loading() && claim() as currentClaim">
   <app-claim-summary [claim]="currentClaim"></app-claim-summary>
@@ -99,6 +92,12 @@
     </div>
 
     <aside class="workshop-side">
+      <app-document-list
+        [documents]="documents()"
+        [claimId]="currentClaim.id"
+        [uploadedBy]="currentClaim.customer.name"
+        [uploadEnabled]="true">
+      </app-document-list>
       <mat-card class="vehicle-card">
         <div class="section-heading"><span class="section-icon vehicle-icon"><mat-icon>directions_car</mat-icon></span><div><h2>Vehicle Details</h2><p>Vehicle approved for repair</p></div></div>
         <div class="vehicle-name">{{ currentClaim.vehicle.year }} {{ currentClaim.vehicle.make }} {{ currentClaim.vehicle.model }}</div>

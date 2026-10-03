@@ -15,17 +15,9 @@
   </ng-container>
 </app-page-header>
 
-<section *ngIf="loading()" class="page-state" aria-live="polite">
-  <mat-spinner diameter="38" aria-label="Loading claim"></mat-spinner>
-  <p>Loading claim details…</p>
-</section>
+<app-loading-indicator *ngIf="loading()" message="Loading claim details…"></app-loading-indicator>
 
-<mat-card *ngIf="!loading() && errorMessage()" class="page-state error-state" role="alert">
-  <mat-icon aria-hidden="true">cloud_off</mat-icon>
-  <h2>Claim unavailable</h2>
-  <p>{{ errorMessage() }}</p>
-  <button mat-stroked-button type="button" (click)="retry()">Try again</button>
-</mat-card>
+<app-error-state *ngIf="!loading() && errorMessage()" title="Claim unavailable" [message]="errorMessage()!" (retryRequested)="retry()"></app-error-state>
 
 <ng-container *ngIf="!loading() && details() as data">
   <app-claim-summary [claim]="data.claim"></app-claim-summary>
@@ -36,7 +28,12 @@
       <app-claim-activity [activities]="data.history"></app-claim-activity>
     </div>
     <aside class="side-column" aria-label="Claim supporting information">
-      <app-document-list [documents]="data.documents" (documentAction)="documentAction($event)"></app-document-list>
+      <app-document-list
+        [documents]="data.documents"
+        [claimId]="data.claim.id"
+        [uploadedBy]="data.claim.customer.name"
+        [uploadEnabled]="canUploadDocuments()">
+      </app-document-list>
       <mat-card class="contact-card">
         <span class="contact-icon"><mat-icon aria-hidden="true">support_agent</mat-icon></span>
         <div><strong>Need help with this claim?</strong><p>Contact your claims representative for assistance.</p></div>

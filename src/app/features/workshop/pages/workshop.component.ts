@@ -12,18 +12,23 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth/auth.service';
-import { Claim, ClaimActivity, ClaimStatus } from '../../claims/models/claim.models';
+import { User } from '../../../core/auth/auth.models';
+import { Claim, ClaimActivity, ClaimDocument, ClaimStatus } from '../../claims/models/claim.models';
 import { ClaimService } from '../../claims/services/claim.service';
 import { ClaimSummaryComponent } from '../../claims/components/claim-summary/claim-summary.component';
 import { ClaimTimelineComponent } from '../../claims/components/claim-timeline/claim-timeline.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { validIsoDateValidator } from '../../../shared/validators/claim-form.validators';
 import { repairDateRangeValidator } from '../../../shared/validators/workshop.validators';
 import { RepairStatus, WorkshopRepair } from '../models/workshop-repair.model';
 import { WorkshopService } from '../services/workshop.service';
-import { ConfirmRepairCompletionDialogComponent } from '../components/confirm-repair-completion-dialog.component';
+import { NotificationService } from '../../../shared/services/notification.service';
+import { ConfirmationDialogComponent } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
+import { ErrorHandlingService } from '../../../core/errors/error-handling.service';
 
 @Component({
   selector: 'app-workshop',
@@ -34,6 +39,8 @@ import { ConfirmRepairCompletionDialogComponent } from '../components/confirm-re
     CommonModule,
     CurrencyPipe,
     DatePipe,
+    DocumentListComponent,
+    ErrorStateComponent,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
@@ -42,7 +49,7 @@ import { ConfirmRepairCompletionDialogComponent } from '../components/confirm-re
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatSnackBarModule,
+    LoadingIndicatorComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink
@@ -57,13 +64,15 @@ export class WorkshopComponent {
   private readonly authService = inject(AuthService);
   private readonly claimService = inject(ClaimService);
   private readonly workshopService = inject(WorkshopService);
+  private readonly errorHandling = inject(ErrorHandlingService);
   private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly claim = signal<Claim | null>(null);
   readonly repair = signal<WorkshopRepair | null>(null);
   readonly history = signal<readonly ClaimActivity[]>([]);
+  readonly documents = signal<readonly ClaimDocument[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -97,14 +106,33 @@ export class WorkshopComponent {
       return;
     }
 
+    this.loadRepair(claimId, user);
+  }
+
+  retry(): void {
+    const claimId = this.route.snapshot.paramMap.get('id');
+    const user = this.authService.getCurrentUser();
+    if (!claimId || !user) {
+      this.loading.set(false);
+      this.errorMessage.set('This repair is not available. Sign in and try again.');
+      return;
+    }
+    this.loadRepair(claimId, user);
+  }
+
+  private loadRepair(claimId: string, user: User): void {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    this.claim.set(null);
     this.workshopService.getRepairForClaim(claimId, user).pipe(
       switchMap(({ claim, repair }) => forkJoin({
         claim: of(claim),
         repair: of(repair),
-        history: this.claimService.getClaimHistory(claim)
+        history: this.claimService.getClaimHistory(claim),
+        documents: this.claimService.getClaimDocuments(claim)
       })),
-      catchError(() => {
-        this.errorMessage.set('You are not assigned to process this repair, or the claim is not eligible.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'workshop.load', 'You are not assigned to process this repair, or the claim is not eligible.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -113,6 +141,7 @@ export class WorkshopComponent {
         this.claim.set(data.claim);
         this.repair.set(data.repair);
         this.history.set(data.history);
+        this.documents.set(data.documents);
         this.form.patchValue({
           repairStartDate: data.repair.repairStartDate,
           estimatedCompletionDate: data.repair.estimatedCompletionDate,
@@ -150,11 +179,17 @@ export class WorkshopComponent {
       return;
     }
 
-    this.dialog.open(ConfirmRepairCompletionDialogComponent, {
+    this.dialog.open(ConfirmationDialogComponent, {
       width: '440px',
-      data: { claimNumber: claim.claimNumber },
+      data: {
+        title: 'Mark repairs complete?',
+        message: `Confirm the repair for ${claim.claimNumber} is complete. This updates the claim workflow to Repair Completed.`,
+        confirmLabel: 'Confirm completion',
+        cancelLabel: 'Continue editing',
+        icon: 'task_alt'
+      },
       ariaLabel: 'Confirm repair completion'
-    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed: boolean) => {
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed: boolean | undefined) => {
       if (confirmed) {
         this.persistRepair();
       }
@@ -189,8 +224,8 @@ export class WorkshopComponent {
           : of({ result, updatedClaim: claim, history: this.history() })
         )
       )),
-      catchError(() => {
-        this.errorMessage.set('We could not save repair updates. Please review the fields and try again.');
+      catchError((error: unknown) => {
+        this.errorMessage.set(this.errorHandling.messageFor(error, 'workshop.save', 'We could not save repair updates. Please review the fields and try again.'));
         return of(null);
       }),
       takeUntilDestroyed(this.destroyRef)
@@ -205,10 +240,8 @@ export class WorkshopComponent {
       if (saved.result.repair.repairStatus === RepairStatus.Completed) {
         this.form.disable();
       }
-      this.snackBar.open(
-        saved.result.claimStatus === 'REPAIR_COMPLETED' ? 'Repair marked as completed.' : 'Repair updates saved.',
-        'Dismiss',
-        { duration: 4000 }
+      this.notifications.success(
+        saved.result.claimStatus === 'REPAIR_COMPLETED' ? 'Repair marked as completed.' : 'Repair updates saved.'
       );
     });
   }
